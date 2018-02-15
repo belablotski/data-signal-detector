@@ -18,24 +18,25 @@ var (
 )
 
 // ScoreFile is score process implementation for one file
-func ScoreFile(file string) {
+func ScoreFile(file string) ScoringResult {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Panic(err)
 	}
 	match := sbacliError.FindAllSubmatch(bytes, -1)
 	if match == nil {
-
+		return ScoringResult{file, 0}
 	}
+	return ScoringResult{file, len(match)}
 }
 
-// Scorer is a worker thread for scoring process.
-func Scorer(n int, files <-chan string, processedCnt chan<- int) {
+// Scorer is a worker thread #n for scoring process.
+func Scorer(n int, files <-chan string, processedCnt chan<- int, dmakerInChan chan<- ScoringResult) {
 	log.Printf("Scorer #%d started", n)
 	cnt := 0
 	for file := range files {
 		log.Printf("Scorer #%d: processing '%s'", n, file)
-		ScoreFile(file)
+		dmakerInChan <- ScoreFile(file)
 		cnt++
 	}
 	log.Printf("Scorer #%d ended, %d files processed", n, cnt)

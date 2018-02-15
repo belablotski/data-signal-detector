@@ -19,10 +19,11 @@ func doScoring(files []string) {
 	t1 := time.Now()
 	scorerInChans := make([]chan string, scorerPoolSize)
 	scorerEndChans := make([]chan int, scorerPoolSize)
+	dmakerInChan := make(chan scorer.ScoringResult, len(files)/10)
 	for i := 0; i < scorerPoolSize; i++ {
 		scorerInChans[i] = make(chan string, chanBufferSize)
 		scorerEndChans[i] = make(chan int)
-		go scorer.Scorer(i, scorerInChans[i], scorerEndChans[i])
+		go scorer.Scorer(i, scorerInChans[i], scorerEndChans[i], dmakerInChan)
 	}
 
 	for i, file := range files {
