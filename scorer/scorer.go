@@ -9,8 +9,8 @@ import (
 
 // ScoringResult contains scoring results for one file
 type ScoringResult struct {
-	file        string
-	numOfErrors int
+	FilePath    string
+	NumOfErrors int
 }
 
 var (
