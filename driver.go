@@ -48,7 +48,7 @@ func doScoring(files []string) {
 }
 
 func main() {
-	files, size := scanner.ListFiles("c:\\")
+	files, size := scanner.ListFiles(".\\test_data")
 	log.Printf("Total number of files: %d, total size: %d", len(files), size)
 
 	doScoring(files)
