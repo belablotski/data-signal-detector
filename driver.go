@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/beloblotskiy/data-signal-detector/etlutils"
 	"github.com/beloblotskiy/data-signal-detector/scanner"
 	"github.com/beloblotskiy/data-signal-detector/scorer"
 )
@@ -48,8 +49,9 @@ func doScoring(files []string) {
 }
 
 func main() {
-	files, size := scanner.ListFiles(".\\test_data")
-	log.Printf("Total number of files: %d, total size: %d", len(files), size)
+	// files, size := scanner.ListFiles(".\\test_data")
+	// log.Printf("Total number of files: %d, total size: %d", len(files), size)
+	//doScoring(files)
 
-	doScoring(files)
+	etlutils.PrintS(scanner.Scan(".\\test_data"), 0)
 }

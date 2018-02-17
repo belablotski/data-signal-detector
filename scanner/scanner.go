@@ -38,17 +38,17 @@ func ListFiles(startDir string) (files []string, size int64) {
 	return files, size
 }
 
-// Scanner does file system scan, starting from specified folder and submits found files into output channel
-func Scanner(startDir string) chan<- string {
-	dirs := make(chan string, 200)
-	files := make(chan<- string, 1000)
+// Scan does file system scan, starting from specified folder and submits found files into output channel
+func Scan(startDir string) <-chan string {
+	dirs := make(chan string, 100000)
+	files := make(chan string, 100000)
 
-	dirs <- startDir
-
-	lister := func(n int, dirs chan string) {
+	fslister := func(n int, wg *sync.WaitGroup) {
+		log.Printf("FSLister #%d started", n)
 		for timeout := 0; timeout < 3; {
 			select {
 			case dir := <-dirs:
+				log.Printf("FSLister #%d procesing directory '%s'", n, dir)
 				filesAndDirs, err := ioutil.ReadDir(dir)
 				if err != nil {
 					if strings.Contains(err.Error(), "Access is denied") {
@@ -59,26 +59,33 @@ func Scanner(startDir string) chan<- string {
 				}
 
 				for _, f := range filesAndDirs {
-					fpath := path.Join(startDir, f.Name())
+					fpath := path.Join(dir, f.Name())
 					if f.IsDir() {
 						dirs <- fpath
 					} else {
 						files <- fpath
 					}
 				}
+				log.Printf("FSLister #%d xx", n)
 			case <-time.After(1 * time.Second):
 				timeout++
+				log.Printf("FSLister #%d timeout #%d", n, timeout)
 			}
 		}
+		wg.Done()
 	}
+
+	dirs <- startDir
 
 	go func() {
 		var wg sync.WaitGroup
-		wg.Add(1)
-		for i := 1; i <= 2; i++ {
-			go lister(i, dirs)
+		n := 1
+		wg.Add(n)
+		for i := 1; i <= n; i++ {
+			go fslister(i, &wg)
 		}
 		wg.Wait()
+		close(dirs)
 		close(files)
 	}()
 
