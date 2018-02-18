@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"time"
+
 	"github.com/beloblotskiy/data-signal-detector/dmaker"
 	"github.com/beloblotskiy/data-signal-detector/etlutils"
 	"github.com/beloblotskiy/data-signal-detector/scanner"
@@ -8,5 +11,8 @@ import (
 )
 
 func main() {
-	etlutils.PrintSR(dmaker.Decide(1, scorer.Score(2, scanner.Scan(".\\test_data"))))
+	t0 := time.Now()
+	p := ".\\test_data"
+	etlutils.PrintSR(dmaker.Decide(1, scorer.Score(10, scanner.Scan(p))))
+	log.Printf("Execution time: %v", time.Since(t0))
 }

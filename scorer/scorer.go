@@ -15,7 +15,7 @@ type ScoringResult struct {
 }
 
 var (
-	sbacliError = regexp.MustCompile("^\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d,\\d\\d\\d\\tsbacli\\tERROR\\t(.*)")
+	sbacliError = regexp.MustCompile("(?m)^\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d\\:\\d\\d\\:\\d\\d,\\d\\d\\d\\tsbacli\\tERROR\\t")
 )
 
 func scoreFile(file string) ScoringResult {
@@ -23,7 +23,7 @@ func scoreFile(file string) ScoringResult {
 	if err != nil {
 		log.Panic(err)
 	}
-	match := sbacliError.FindAllSubmatch(bytes, -1)
+	match := sbacliError.FindAllString(string(bytes), -1)
 	if match == nil {
 		return ScoringResult{file, 0}
 	}
@@ -37,10 +37,12 @@ func Score(nWorkers int, files <-chan string) <-chan ScoringResult {
 	scorer := func(n int, wg *sync.WaitGroup) {
 		defer wg.Done()
 		log.Printf("Scorer #%d starts", n)
+		cnt := 0
 		for file := range files {
 			scores <- scoreFile(file)
+			cnt++
 		}
-		log.Printf("Scorer #%d ends", n)
+		log.Printf("Scorer #%d ends, processed %d files", n, cnt)
 	}
 
 	go func() {

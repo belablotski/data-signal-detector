@@ -20,12 +20,14 @@ func Decide(nWorkers int, scores <-chan scorer.ScoringResult) <-chan scorer.Scor
 	decisionMaker := func(n int, wg *sync.WaitGroup) {
 		defer wg.Done()
 		log.Printf("Decision maker #%d starts", n)
+		cnt := 0
 		for score := range scores {
 			if decide(score) {
 				trueScores <- score
 			}
+			cnt++
 		}
-		log.Printf("Decision maker #%d ends", n)
+		log.Printf("Decision maker #%d ends, processed %d results", n, cnt)
 	}
 
 	go func() {

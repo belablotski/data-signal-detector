@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func listFiles(startDir string, files chan<- string) {
+func listFiles(startDir string, files chan<- string) int {
 	filesAndDirs, err := ioutil.ReadDir(startDir)
 	if err != nil {
 		if strings.Contains(err.Error(), "Access is denied") {
@@ -18,14 +18,17 @@ func listFiles(startDir string, files chan<- string) {
 		}
 	}
 
+	cnt := 0
 	for _, f := range filesAndDirs {
 		p := path.Join(startDir, f.Name())
 		if f.IsDir() {
-			listFiles(p, files)
+			cnt += listFiles(p, files)
 		} else {
 			files <- p
+			cnt++
 		}
 	}
+	return cnt
 }
 
 // Scan does file system scan, starting from specified folder and submits found files into output channel
@@ -34,9 +37,9 @@ func Scan(startDir string) <-chan string {
 
 	go func() {
 		log.Println("File system scanner starts")
-		listFiles(startDir, files)
+		cnt := listFiles(startDir, files)
 		close(files)
-		log.Println("File system scanner ends")
+		log.Printf("File system scanner ends, processed %d files", cnt)
 	}()
 
 	return files
