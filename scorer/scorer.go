@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
+	"sync"
 )
 
 // ScoringResult contains scoring results for one file
@@ -17,8 +18,7 @@ var (
 	sbacliError = regexp.MustCompile("^\\d\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d,\\d\\d\\d\\tsbacli\\tERROR\\t(.*)")
 )
 
-// ScoreFile is score process implementation for one file
-func ScoreFile(file string) ScoringResult {
+func scoreFile(file string) ScoringResult {
 	bytes, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Panic(err)
@@ -30,15 +30,28 @@ func ScoreFile(file string) ScoringResult {
 	return ScoringResult{file, len(match)}
 }
 
-// Scorer is a worker thread #n for scoring process.
-func Scorer(n int, files <-chan string, processedCnt chan<- int, dmakerInChan chan<- ScoringResult) {
-	log.Printf("Scorer #%d started", n)
-	cnt := 0
-	for file := range files {
-		log.Printf("Scorer #%d: processing '%s'", n, file)
-		dmakerInChan <- ScoreFile(file)
-		cnt++
+// Score does parallel scoring calculations for files from input channel
+func Score(nWorkers int, files <-chan string) <-chan ScoringResult {
+	scores := make(chan ScoringResult, 100)
+
+	scorer := func(n int, wg *sync.WaitGroup) {
+		defer wg.Done()
+		log.Printf("Scorer #%d starts", n)
+		for file := range files {
+			scores <- scoreFile(file)
+		}
+		log.Printf("Scorer #%d ends", n)
 	}
-	log.Printf("Scorer #%d ended, %d files processed", n, cnt)
-	processedCnt <- cnt
+
+	go func() {
+		var wg sync.WaitGroup
+		wg.Add(nWorkers)
+		for i := 1; i <= nWorkers; i++ {
+			go scorer(i, &wg)
+		}
+		wg.Wait()
+		close(scores)
+	}()
+
+	return scores
 }
